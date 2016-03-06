@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Music_APP</string>
+    <string name="play">▶</string>
+    <string name="pause">∥</string>
+    <string name="back">◀◀</string>
+    <string name="forward">▶▶</string>
+</resources>
