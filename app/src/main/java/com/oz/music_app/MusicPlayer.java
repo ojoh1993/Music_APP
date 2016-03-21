@@ -71,7 +71,7 @@ public class MusicPlayer {
             }
         });
 
-        set_music(mMusicManager.get_CurrentSong(),false);
+        //set_music(mMusicManager.get_CurrentSong(),false);
     }
 
     //어떤 노래를 재생할지 세팅하는 함수, just_play가 true 일 경우 세팅후 즉시 재생한다.
@@ -96,6 +96,7 @@ public class MusicPlayer {
 
     //음악을 재생 시키는 함수
     public void play(){
+        
         if(!m.isPlaying()) {
             m.start();
             play_Button.setText(R.string.pause);
@@ -149,17 +150,21 @@ public class MusicPlayer {
     }
     */
 
-        public void update_SongList(){
-            File home=new File(MEDIA_PATH);
-            if(home.listFiles(new Mp3Filter()).length>0){
-                for(File file:home.listFiles(new Mp3Filter())){
-                    songs.add(file.getName());
+        public void update_SongList() {
+            File home = new File(MEDIA_PATH);
+            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                if (!home.exists()) {
+                    home.mkdirs();
                 }
+                if (home.listFiles(new Mp3Filter()).length > 0) {
+                    for (File file : home.listFiles(new Mp3Filter())) {
+                        songs.add(file.getName());
+                    }
+                }
+                ArrayAdapter<String> songList = new ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, songs);
+                listView.setAdapter(songList);
             }
-            ArrayAdapter<String> songList = new ArrayAdapter<String>(context,android.R.layout.simple_list_item_1,songs);
-            listView.setAdapter(songList);
         }
-
         public String get_NextSong(){
             if(++currentPosition>=songs.size()){
                 currentPosition=0;
