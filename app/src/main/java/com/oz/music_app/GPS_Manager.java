@@ -28,8 +28,12 @@ public class GPS_Manager {
 
     //Toast형태로 위치정보를 받아 볼수 있도록 만든 함수.(보기용)
     public void show_location_info() {
-        if(mLocationListener==null) prepare_GPS();
-        Toast.makeText(context, mLocationListener.location_info(), Toast.LENGTH_SHORT).show();
+        if(mLocationListener!=null){
+            Toast.makeText(context, mLocationListener.location_info(), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        prepare_GPS();
+
     }
 
     //앱 종료시 같이 종료되어야 할 것들을 모아 둔 함수

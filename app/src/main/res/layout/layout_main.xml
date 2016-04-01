@@ -18,6 +18,12 @@
             android:id="@+id/main_etc_button1"
             android:layout_weight="1" />
 
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:id="@+id/main_etc_button2"
+            android:layout_weight="1" />
+
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
