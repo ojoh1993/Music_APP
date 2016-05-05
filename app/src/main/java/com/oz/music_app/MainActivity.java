@@ -6,6 +6,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -70,6 +71,9 @@ public class MainActivity extends Activity {
         super.onDestroy();
         mMusicPlayer.close_Player();
         mGPS_Manager.close_GPS_Manager();
+        ActivityCompat.finishAffinity(this);
+        System.runFinalization();
+        System.exit(0);
     }
 
 }

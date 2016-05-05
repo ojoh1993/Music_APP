@@ -8,8 +8,10 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -17,28 +19,73 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 /**
  * Created by LG on 2016-03-21.
  */
 public class Weather_Manager {
+    GPS_Manager gps;
+    private final String DEBUG_TAG="DEBUG";
+    private Context context;
+    private Lamc_parameter map;
 
     private class mAsyncTask extends AsyncTask<String,String,String>{
         @Override
         protected String doInBackground(String... arg0) {
             try {
-                return (String)downloadUrl((String)arg0[0]);
+                String weather_info = (String)downloadUrl((String)arg0[0]);
+               /* InputSource is = new InputSource(new StringReader(weather_info));
+                Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+*/
+                Document document=DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(arg0[0]);
+                //XPath xPath= XPathFactory.newInstance().newXPath();
+
+                //String expression ="//*/item";
+                //NodeList cols = (NodeList)xPath.compile(expression).evaluate(document, XPathConstants.NODESET);
+                NodeList nodes=document.getElementsByTagName("item");
+                for(int i=0;i<nodes.getLength();i++){
+                    NodeList item_nodelist=nodes.item(i).getChildNodes();
+                    //이렇게 사용하는건 DOM방식 인것 같다.
+                    String category=item_nodelist.item(2).getTextContent();
+                    String value;
+                    //강수:PTY, 기온:T1H, 하늘:SKY에 한해서만 확인
+                    if(category.equals("PTY")
+                            ||category.equals("T1H")
+                            ||category.equals("SKY")){
+
+                        value=item_nodelist.item(5).getTextContent();
+                        Log.d("OZ",category);
+                        Log.d("OZ",value);
+                    }
+
+                }
             } catch (IOException e) {
                 Log.d(DEBUG_TAG, "The msg is : " + e.getMessage());
                 return "download failed";
-            }
+            } catch (SAXException e) {//.newInstance().newDocumentBuilder().parse(is) 여기서 걸림
+                e.printStackTrace();
+                return "parse failed";
+            } catch (ParserConfigurationException e) {//DocumentBuilderFactory.newInstance().newDocumentBuilder() 에서 걸림
+                e.printStackTrace();
+                return "document build failed";
+            } /*catch (XPathExpressionException e) {//xPath.compile 에서 걸림
+                e.printStackTrace();
+                return "XPath compile failed";
+            }*/
+            return "download & parse success";
         }
     }
     /*
@@ -64,8 +111,8 @@ public class Weather_Manager {
             slat2 = 60.0f;           // 표준위도 2
             _olon  = 126.0f;          // 기준점 경도
             _olat  = 38.0f;           // 기준점 위도
-            xo    = 210f/map.grid;   // 기준점 X좌표
-            yo    = 675f/map.grid;   // 기준점 Y좌표
+            xo    = 210f/grid;   // 기준점 X좌표
+            yo    = 675f/grid;   // 기준점 Y좌표
 
             re = Re/grid;
             slat1 =(float)Math.toRadians(slat1);
@@ -86,23 +133,43 @@ public class Weather_Manager {
         float X,Y;
     }
 
-    String strUrl="http://newsky2.kma.go.kr/service/SecndSrtpdFrcstInfoService2/ForecastGrib?ServiceKey=dU6gHB3IpqNP4G2linHrhdoxy22nmeoDDMHgbfQBiD8XFk6yKXsKlYXF1QpVGlmnAbPUUttMhY6vZsyTshJh6A%3D%3D"+"&base_date=20160322&base_time=0600&nx=55&ny=127";
-
-    private final String DEBUG_TAG="DEBUG";
-    private Context context;
-    private Lamc_parameter map;
-
     public Weather_Manager(Context context){
         this.context=context;
-
+        gps=new GPS_Manager(context);
         map=new Lamc_parameter();
-
     }
 
-
-
-
     public void get_Weather_info(){
+
+        if (!gps.is_location_info_received_successfully()) return;
+
+        //날짜정보 입력
+        GregorianCalendar today=new GregorianCalendar();
+
+        int minute = today.get(Calendar.MINUTE);
+
+        if(minute<=40){
+            today.add(Calendar.HOUR, -1);
+
+        }
+        today.set(Calendar.MINUTE,0);
+
+        String DATE = new SimpleDateFormat("yyyyMMdd").format(today.getTime());
+        String HOUR = new SimpleDateFormat("HH").format(today.getTime());
+        String MINUTE = new SimpleDateFormat("mm").format(today.getTime());
+
+        //
+        Coordinate_XY coord=map_conv(gps.get_longitude(),gps.get_latitude());
+
+        String strUrl="http://newsky2.kma.go.kr/service/SecndSrtpdFrcstInfoService2/ForecastGrib?" +
+                "ServiceKey=dU6gHB3IpqNP4G2linHrhdoxy22nmeoDDMHgbfQBiD8XFk6yKXsKlYXF1QpVGlmnAbPUUttMhY6vZsyTshJh6A%3D%3D"+
+                "&base_date="+ DATE +
+                "&base_time="+HOUR+MINUTE+
+                "&nx="+(int)coord.X+
+                "&ny="+(int)coord.Y;
+        Log.d("OZ",HOUR+MINUTE);
+        Log.d("OZ",strUrl);
+
         try {
             if (strUrl != null && strUrl.length() > 0) {
                 ConnectivityManager conMgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);

@@ -16,8 +16,8 @@ import android.widget.Toast;
  */
 public class GPS_Manager {
     Context context;
-    myLocationListener mLocationListener;
-    LocationManager mLocationManager;
+    static myLocationListener mLocationListener;
+    static LocationManager mLocationManager;
 
     public GPS_Manager(Context context) {
 
@@ -26,24 +26,63 @@ public class GPS_Manager {
 
     }
 
+    public boolean is_location_info_received_successfully(){
+        if(mLocationListener!=null)
+            return mLocationListener.received_location_info_successfully;
+        else
+            return false;
+    }
+
     //Toast형태로 위치정보를 받아 볼수 있도록 만든 함수.(보기용)
     public void show_location_info() {
-        if(mLocationListener!=null){
+        if(mLocationListener!=null) {
             Toast.makeText(context, mLocationListener.location_info(), Toast.LENGTH_SHORT).show();
             return;
         }
-        prepare_GPS();
+        else prepare_GPS();
 
     }
+
+    public float get_latitude() {
+        if (mLocationListener != null) {
+            return (float) mLocationListener.location_latitude;
+        } else {
+            prepare_GPS();
+            return -1;
+        }
+    }
+    public float get_longitude(){
+        if(mLocationListener!=null){
+            return (float)mLocationListener.location_longitude;
+        } else {
+            prepare_GPS();
+            return -1;
+        }
+    }
+
+
+
 
     //앱 종료시 같이 종료되어야 할 것들을 모아 둔 함수
     public void close_GPS_Manager() {
+    //밑에 있는 removeUpdattes 함수를 쓰기위해 자동으로 추가된 구문들. 권한이 있는지 체크한다.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                return;
+        }
+        if(mLocationManager!=null && mLocationListener!=null) {
+            mLocationManager.removeUpdates(mLocationListener);
+        }
     }
 
-    //혠ghkftjdghk
     private void prepare_GPS(){
         //LocationManager를 활성화 한다.
-        mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+        if(mLocationManager==null)
+            mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        else if(mLocationListener!=null)
+            return;
 
         if (!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(context, "GPS가 작동하지 않습니다.", Toast.LENGTH_SHORT).show();
@@ -54,11 +93,12 @@ public class GPS_Manager {
                         && context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
                     return;
             }
-            Location ll = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            mLocationListener = new myLocationListener();
-            //리스너에게 GPS및 네트워크를 이용해 위치정보를 수신하게 한다. (1초마다 또는 1m이상 움직일 경우)
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, mLocationListener);
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, mLocationListener);
+            if(mLocationListener==null){
+                mLocationListener = new myLocationListener(mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+                //리스너에게 GPS및 네트워크를 이용해 위치정보를 수신하게 한다. (1초마다 또는 1m이상 움직일 경우)
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, mLocationListener);
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, mLocationListener);
+            }
         }
 
     }
@@ -69,8 +109,25 @@ public class GPS_Manager {
         double location_latitude,location_longitude,location_altitude;
         float location_accuracy,location_speed,location_bearing;
 
+        boolean received_location_info_successfully;
+
+        public myLocationListener (Location location){
+            super();
+            received_location_info_successfully=false;
+            if(location!=null){
+                location_accuracy=location.getAccuracy();
+                location_speed=location.getSpeed();
+                location_bearing=location.getBearing();
+
+                location_latitude=location.getLatitude();
+                location_longitude=location.getLongitude();
+                location_altitude=location.getAltitude();
+            }
+        }
         @Override
         public void onLocationChanged(Location location) {
+
+            received_location_info_successfully=true;
 
             location_accuracy=location.getAccuracy();
             location_speed=location.getSpeed();
@@ -121,6 +178,6 @@ public class GPS_Manager {
                     "Accuracy : " + Float.toString(location_accuracy) + "\n"+
                     "Bearing : " + Float.toString(location_bearing) + "\n";
         }
-    };
+    }
 
 }
