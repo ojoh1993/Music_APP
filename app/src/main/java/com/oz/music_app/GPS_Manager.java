@@ -26,7 +26,7 @@ public class GPS_Manager {
 
     }
 
-    public boolean is_location_info_received_successfully(){
+    public boolean is_the_location_info_received_successfully(){
         if(mLocationListener!=null)
             return mLocationListener.received_location_info_successfully;
         else
@@ -36,33 +36,46 @@ public class GPS_Manager {
     //Toast형태로 위치정보를 받아 볼수 있도록 만든 함수.(보기용)
     public void show_location_info() {
         if(mLocationListener!=null) {
+            if(is_the_location_info_received_successfully())
             Toast.makeText(context, mLocationListener.location_info(), Toast.LENGTH_SHORT).show();
-            return;
         }
         else prepare_GPS();
 
     }
 
-    public float get_latitude() {
+    public double get_latitude() {
         if (mLocationListener != null) {
-            return (float) mLocationListener.location_latitude;
+            if(is_the_location_info_received_successfully())
+                return mLocationListener.location_latitude;
+            else
+                return -1;
         } else {
             prepare_GPS();
             return -1;
         }
     }
-    public float get_longitude(){
+    public double get_longitude(){
         if(mLocationListener!=null){
-            return (float)mLocationListener.location_longitude;
+            if(is_the_location_info_received_successfully())
+                return mLocationListener.location_longitude;
+            else
+                return -1;
         } else {
             prepare_GPS();
             return -1;
         }
     }
-
-
-
-
+    public double get_speed(){
+        if(mLocationListener!=null){
+            if(is_the_location_info_received_successfully())
+                return (double)mLocationListener.location_speed;
+            else
+                return -1;
+        } else {
+            prepare_GPS();
+            return -1;
+        }
+    }
     //앱 종료시 같이 종료되어야 할 것들을 모아 둔 함수
     public void close_GPS_Manager() {
     //밑에 있는 removeUpdattes 함수를 쓰기위해 자동으로 추가된 구문들. 권한이 있는지 체크한다.
@@ -78,7 +91,6 @@ public class GPS_Manager {
 
     private void prepare_GPS(){
         //LocationManager를 활성화 한다.
-
         if(mLocationManager==null)
             mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         else if(mLocationListener!=null)
@@ -94,7 +106,9 @@ public class GPS_Manager {
                     return;
             }
             if(mLocationListener==null){
+                //리스너 초기화
                 mLocationListener = new myLocationListener(mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+
                 //리스너에게 GPS및 네트워크를 이용해 위치정보를 수신하게 한다. (1초마다 또는 1m이상 움직일 경우)
                 mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, mLocationListener);
                 mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, mLocationListener);
@@ -109,24 +123,25 @@ public class GPS_Manager {
         double location_latitude,location_longitude,location_altitude;
         float location_accuracy,location_speed,location_bearing;
 
+        //위치정보 수신 이후에 true로 변경되는 변수. 첫 수신을 성공적으로 받았는지를 확인하기 위해 두었다.
         boolean received_location_info_successfully;
 
         public myLocationListener (Location location){
             super();
             received_location_info_successfully=false;
-            if(location!=null){
+           /* if(location!=null){
+                //이전 위치정보가 남아 있는경우 초기화때 가져다 쓴다.
                 location_accuracy=location.getAccuracy();
                 location_speed=location.getSpeed();
                 location_bearing=location.getBearing();
-
                 location_latitude=location.getLatitude();
                 location_longitude=location.getLongitude();
                 location_altitude=location.getAltitude();
-            }
+            }*/
         }
         @Override
         public void onLocationChanged(Location location) {
-
+            //위치정보가 수신 되었을경우 true로 변경한다.
             received_location_info_successfully=true;
 
             location_accuracy=location.getAccuracy();
@@ -162,12 +177,12 @@ public class GPS_Manager {
 
         @Override
         public void onProviderEnabled(String provider) {
-            Toast.makeText(context, provider + " Enabled", Toast.LENGTH_SHORT).show();
+           // Toast.makeText(context, provider + " Enabled", Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onProviderDisabled(String provider) {
-            Toast.makeText(context, provider + " Disabled", Toast.LENGTH_SHORT).show();
+           // Toast.makeText(context, provider + " Disabled", Toast.LENGTH_SHORT).show();
         }
         //보기용 함수. 현재 위치정보를 String형태로 뿌려준다.
         public String location_info(){

@@ -5,21 +5,15 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -28,50 +22,48 @@ import java.util.GregorianCalendar;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
-/**
- * Created by LG on 2016-03-21.
- */
 public class Weather_Manager {
+
     GPS_Manager gps;
     private final String DEBUG_TAG="DEBUG";
     private Context context;
     private Lamc_parameter map;
 
+    //mutex라고 쓰긴 했지만 대기는 하지 않음..
+    public static boolean mutex_weatherinfo=false;
+    private static boolean is_the_first_weather_info_received=false;
+    private static double value_T1H;
+    private static int value_PTY,value_SKY;
+
     private class mAsyncTask extends AsyncTask<String,String,String>{
         @Override
         protected String doInBackground(String... arg0) {
             try {
-                String weather_info = (String)downloadUrl((String)arg0[0]);
-               /* InputSource is = new InputSource(new StringReader(weather_info));
-                Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
-*/
                 Document document=DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(arg0[0]);
-                //XPath xPath= XPathFactory.newInstance().newXPath();
-
-                //String expression ="//*/item";
-                //NodeList cols = (NodeList)xPath.compile(expression).evaluate(document, XPathConstants.NODESET);
                 NodeList nodes=document.getElementsByTagName("item");
-                for(int i=0;i<nodes.getLength();i++){
-                    NodeList item_nodelist=nodes.item(i).getChildNodes();
+
+                is_the_first_weather_info_received=true;
+                for(int i=0;i<nodes.getLength();i++) {
+                    NodeList item_nodelist = nodes.item(i).getChildNodes();
                     //이렇게 사용하는건 DOM방식 인것 같다.
-                    String category=item_nodelist.item(2).getTextContent();
-                    String value;
+                    String category = item_nodelist.item(2).getTextContent();
+                    String value=item_nodelist.item(5).getTextContent();
                     //강수:PTY, 기온:T1H, 하늘:SKY에 한해서만 확인
-                    if(category.equals("PTY")
-                            ||category.equals("T1H")
-                            ||category.equals("SKY")){
-
-                        value=item_nodelist.item(5).getTextContent();
-                        Log.d("OZ",category);
-                        Log.d("OZ",value);
+                    Log.d("OZ",category+", "+value);
+                    if (category.equals("PTY")){
+                        value_PTY=Integer.parseInt(value);
                     }
-
+                    else if (category.equals("T1H")){
+                        value_T1H=Double.parseDouble(value);
+                    }
+                    else if (category.equals("SKY")){
+                        value_SKY=Integer.parseInt(value);
+                    }
                 }
+                //다운로드가 완료 되었으면 뮤텍스를 해제, get_weather_info_in_String 함수가 진행 되도록 합니다.
+                mutex_weatherinfo=false;
+
             } catch (IOException e) {
                 Log.d(DEBUG_TAG, "The msg is : " + e.getMessage());
                 return "download failed";
@@ -130,7 +122,7 @@ public class Weather_Manager {
     }
 
     private class Coordinate_XY{
-        float X,Y;
+        double X,Y;
     }
 
     public Weather_Manager(Context context){
@@ -139,9 +131,13 @@ public class Weather_Manager {
         map=new Lamc_parameter();
     }
 
-    public void get_Weather_info(){
-
-        if (!gps.is_location_info_received_successfully()) return;
+    private void request_Weather_info(){
+        /*
+        * 기상청 날씨 API를 이용, http로 단기실황 날씨정보를 요청받는 함수
+        * 요청은 mAsyncTask class가 하며, 이 함수는 요청 받는데 필요한 정보를 종합하는 역할
+        * 뮤텍스를 사용하는 부분이 있음
+        */
+        if (!gps.is_the_location_info_received_successfully()) return;
 
         //날짜정보 입력
         GregorianCalendar today=new GregorianCalendar();
@@ -150,7 +146,6 @@ public class Weather_Manager {
 
         if(minute<=40){
             today.add(Calendar.HOUR, -1);
-
         }
         today.set(Calendar.MINUTE,0);
 
@@ -158,8 +153,7 @@ public class Weather_Manager {
         String HOUR = new SimpleDateFormat("HH").format(today.getTime());
         String MINUTE = new SimpleDateFormat("mm").format(today.getTime());
 
-        //
-        Coordinate_XY coord=map_conv(gps.get_longitude(),gps.get_latitude());
+        Coordinate_XY coord=coordinate_converter(gps.get_longitude(),gps.get_latitude());
 
         String strUrl="http://newsky2.kma.go.kr/service/SecndSrtpdFrcstInfoService2/ForecastGrib?" +
                 "ServiceKey=dU6gHB3IpqNP4G2linHrhdoxy22nmeoDDMHgbfQBiD8XFk6yKXsKlYXF1QpVGlmnAbPUUttMhY6vZsyTshJh6A%3D%3D"+
@@ -175,7 +169,11 @@ public class Weather_Manager {
                 ConnectivityManager conMgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo netInfo = conMgr.getActiveNetworkInfo();
                 if (netInfo != null && netInfo.isConnected()) {
+                    mutex_weatherinfo=true;     //뮤텍스 설정
                     new mAsyncTask().execute(strUrl);        // html 다운로드 쓰레드 기동
+                    while(mutex_weatherinfo){
+                    //해제는 asynctask에서 일어남.
+                    };
                 } else {
                     throw new Exception("network error");
                 }
@@ -186,6 +184,32 @@ public class Weather_Manager {
             e.printStackTrace();
         }
     }
+
+    synchronized public String get_weather_info_in_String() {
+    /*
+        현재 날씨를 분석해서 데이터베이스 쿼리에 사용할 날씨의 형태
+        (맑음, 구름, 흐림, 비 눈, 폭염, 한파)
+        로 바꾸어 주는 함수
+    */
+        request_Weather_info();
+
+        //와우 쏘울 코딩!
+        if(value_PTY>=2) return "눈";//눈과 진눈깨비 모두 눈으로 취급
+        else if(value_PTY==1) return "비";
+        else{//PTY=0 -> 비/눈 없음
+            //기온 체크
+            if(value_T1H>=32.0) return "폭염";
+            else if(value_T1H<=-8.0) return "한파";
+            else {
+                //폭염, 한파가 아닐경우 하늘 상태 체크로 넘어감.
+                if(value_SKY==4) return "흐림";
+                else if(value_SKY>=2) return "구름";
+                else return "맑음";
+            }
+        }
+
+    }
+
 
     private String downloadUrl(String strUrl) throws IOException {
         InputStream is = null;
@@ -219,7 +243,7 @@ public class Weather_Manager {
 
 
     /*위,경도를 입력으로 받고 날씨정보용 좌표를 출력 하는 함수*/
-    private Coordinate_XY map_conv (float lon,float lat)
+    private Coordinate_XY coordinate_converter (double lon,double lat)
     {
         Coordinate_XY coord=new Coordinate_XY();
 
@@ -231,8 +255,8 @@ public class Weather_Manager {
         if (theta >  Math.PI) theta -= 2.0*Math.PI;
         if (theta < -Math.PI) theta += 2.0*Math.PI;
         theta *= map.sn;
-        coord.X = (float)(ra*Math.sin(theta)) + (map).xo;
-        coord.Y = (float)(map.ro - ra*Math.cos(theta)) + (map).yo;
+        coord.X = ra*Math.sin(theta) + (map).xo;
+        coord.Y = map.ro - ra*Math.cos(theta) + (map).yo;
 
 
         coord.X = (int)(coord.X + 1.5);
