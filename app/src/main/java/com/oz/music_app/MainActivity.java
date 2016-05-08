@@ -99,7 +99,6 @@ public class MainActivity extends Activity {
 
         GregorianCalendar today=new GregorianCalendar();
         int hour = today.get(Calendar.HOUR_OF_DAY);
-        Log.d("OZ",hour+"");
         String time;
         if(hour>=21 || hour<=4) time="밤";
         else if(05<=hour && hour<=9) time="아침";
@@ -120,7 +119,7 @@ public class MainActivity extends Activity {
         //DB상에 현재 장소가 있는지 확인
         Log.d("OZ",place+", "+weather+", "+time+", "+moving_state+", ");
         String song_title=mDbAdapter.get_Recommended_SongTitle_FromDatabase(place, time, weather, moving_state);
-        Log.d("OZ",song_title);
+        Log.d("OZ",song_title+"");
         //데이터베이스에 rawQuery를 던져봅니다.
 
         if(song_title!=null) mMusicPlayer.set_music(MusicPlayer.MEDIA_PATH+song_title+".mp3",true);
