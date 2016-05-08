@@ -50,7 +50,6 @@ public class Weather_Manager {
                     String category = item_nodelist.item(2).getTextContent();
                     String value=item_nodelist.item(5).getTextContent();
                     //강수:PTY, 기온:T1H, 하늘:SKY에 한해서만 확인
-                    Log.d("OZ",category+", "+value);
                     if (category.equals("PTY")){
                         value_PTY=Integer.parseInt(value);
                     }

@@ -56,11 +56,16 @@ public class MusicPlayer {
         this.back_Button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //길게 눌렀을때랑 짧게 눌렀을 때의 차이를 줄 수 있을까?
+                back();
             }
         });
         this.forward_Button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //길게 눌렀을때랑 짧게 눌렀을 때의 차이를 줄 수 있을까?
+                forward();
+
             }
         });
         this.listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -96,10 +101,9 @@ public class MusicPlayer {
 
     //음악을 재생 시키는 함수
     public void play(){
-        
         if(!m.isPlaying()) {
             m.start();
-            play_Button.setText(R.string.pause);
+            if(m.isPlaying()) play_Button.setText(R.string.pause);
         }
         else {
             m.pause();
