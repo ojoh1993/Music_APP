@@ -11,9 +11,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.widget.Toast;
 
-/**
- * Created by LG on 2016-03-06.
- */
 public class GPS_Manager {
     Context context;
     static myLocationListener mLocationListener;

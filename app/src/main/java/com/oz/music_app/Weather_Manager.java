@@ -72,10 +72,7 @@ public class Weather_Manager {
             } catch (ParserConfigurationException e) {//DocumentBuilderFactory.newInstance().newDocumentBuilder() 에서 걸림
                 e.printStackTrace();
                 return "document build failed";
-            } /*catch (XPathExpressionException e) {//xPath.compile 에서 걸림
-                e.printStackTrace();
-                return "XPath compile failed";
-            }*/
+            }
             return "download & parse success";
         }
     }
@@ -160,8 +157,6 @@ public class Weather_Manager {
                 "&base_time="+HOUR+MINUTE+
                 "&nx="+(int)coord.X+
                 "&ny="+(int)coord.Y;
-        Log.d("OZ",HOUR+MINUTE);
-        Log.d("OZ",strUrl);
 
         try {
             if (strUrl != null && strUrl.length() > 0) {
@@ -184,7 +179,7 @@ public class Weather_Manager {
         }
     }
 
-    synchronized public String get_weather_info_in_String() {
+    public String get_weather_info_in_String() {
     /*
         현재 날씨를 분석해서 데이터베이스 쿼리에 사용할 날씨의 형태
         (맑음, 구름, 흐림, 비 눈, 폭염, 한파)
@@ -209,38 +204,6 @@ public class Weather_Manager {
 
     }
 
-
-    private String downloadUrl(String strUrl) throws IOException {
-        InputStream is = null;
-        Reader reader = null;
-        int len = 5000;
-        try {
-            URL url = new URL(strUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(5000);
-            conn.setConnectTimeout(5000);
-            conn.setRequestMethod("GET");
-            conn.setDoInput(true);
-            conn.connect();
-            int resp = conn.getResponseCode();
-            Log.d(DEBUG_TAG, "The response is: " +resp);
-            is = conn.getInputStream();
-            reader = new InputStreamReader(is, "UTF-8");
-            char[] buff = new char[len];
-            reader.read(buff);
-            reader.close();
-            is.close();
-            Log.d("OZ",new String(buff));
-            return new String(buff);
-        }
-        finally {
-            if (is != null) {
-                is.close();
-            }
-        }
-    }
-
-
     /*위,경도를 입력으로 받고 날씨정보용 좌표를 출력 하는 함수*/
     private Coordinate_XY coordinate_converter (double lon,double lat)
     {
@@ -256,7 +219,6 @@ public class Weather_Manager {
         theta *= map.sn;
         coord.X = ra*Math.sin(theta) + (map).xo;
         coord.Y = map.ro - ra*Math.cos(theta) + (map).yo;
-
 
         coord.X = (int)(coord.X + 1.5);
         coord.Y = (int)(coord.Y + 1.5);

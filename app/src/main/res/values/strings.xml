@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Music_APP</string>
-    <string name="play">▶</string>
-    <string name="pause">∥</string>
-    <string name="back">◀◀</string>
-    <string name="forward">▶▶</string>
+    <string name="recommendation_button">추천
+        시작</string>
+    <string name="recommendation_button2">추천
+        중..</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>
